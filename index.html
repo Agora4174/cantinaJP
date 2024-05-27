@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Vendas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .btn-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Vendas</h1>
+        <button id="btnVendas">Vendas</button>
+        <button id="btnExtrato">Extrato</button>
+
+        <div id="formulario" style="display: none;">
+            <h2>Cadastro de Item</h2>
+            <form id="cadastroForm">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" required><br>
+
+                <label for="cantina">Cantina:</label>
+                <input type="text" id="cantina" name="cantina" required><br>
+
+                <label for="valor">Valor:</label>
+                <input type="number" id="valor" name="valor" step="0.01" required><br>
+
+                <label for="quantidade">Quantidade:</label>
+                <input type="number" id="quantidade" name="quantidade" required><br>
+
+                <label for="total2Por10">2 por 10,00:</label>
+                <input type="number" id="total2Por10" name="total2Por10" min="1" max="10" required><br>
+
+                <label for="pagarDepois">Pagar depois:</label>
+                <input type="checkbox" id="pagarDepois" name="pagarDepois"><br>
+
+                <label for="total">Total:</label>
+                <input type="text" id="total" name="total" readonly><br>
+
+                <div class="btn-container">
+                    <button type="button" onclick="calcularTotal()">Calcular Total</button>
+                    <button type="button" onclick="salvarItem()">Salvar</button>
+                    <button type="button" onclick="novoCadastro()">Novo Cadastro</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="consulta" style="display: none;">
+            <h2>Consulta de Vendas</h2>
+            <label for="nomeFiltro">Filtrar por Nome:</label>
+            <input type="text" id="nomeFiltro" oninput="filtrarItens()"><br>
+
+            <label for="dataFiltro">Filtrar por Data:</label>
+            <input type="date" id="dataFiltro" oninput="filtrarItens()"><br>
+
+            <table id="consultaTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Cantina</th>
+                        <th>Valor</th>
+                        <th>Quantidade</th>
+                        <th>2 por 10,00</th>
+                        <th>Total</th>
+                        <th>Data</th>
+                        <th>Em haver</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Itens serão inseridos aqui via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <button onclick="voltarParaInicio()">Voltar para o Início</button>
+    </div>
+
+    <script>
+        document.getElementById('btnVendas').addEventListener('click', function() {
+            abrirFormulario();
+        });
+        document.getElementById('btnExtrato').addEventListener('click', function() {
+            abrirConsulta();
+        });
+
+        function abrirFormulario() {
+            document.getElementById('formulario').style.display = 'block';
+            document.getElementById('consulta').style.display = 'none';
+        }
+
+        function abrirConsulta() {
+            document.getElementById('formulario').style.display = 'none';
+            document.getElementById('consulta').style.display = 'block';
+            carregarItens();
+        }
+
+        function calcularTotal() {
+            const valor = parseFloat(document.getElementById('valor').value);
+            const quantidade = parseInt(document.getElementById('quantidade').value);
+            const total2Por10 = parseInt(document.getElementById('total2Por10').value);
+            let total = (valor * quantidade) + (total2Por10 * 10); // Multiplica o valor pela quantidade e soma com 2 * 10
+            document.getElementById('total').value = total.toFixed(2);
+        }
+
+        function salvarItem() {
+            const nome = document.getElementById('nome').value;
+            const cantina = document.getElementById('cantina').value;
+            const valor = parseFloat(document.getElementById('valor').value);
+            const quantidade = parseInt(document.getElementById('quantidade').value);
+            const total = parseFloat(document.getElementById('total').value);
+            const total2Por10 = parseInt(document.getElementById('total2Por10').value);
+            const pagarDepois = document.getElementById('pagarDepois').checked; // Verifica se está marcado como "Pagar depois"
+
+            const item = { nome, cantina, valor, quantidade, total, total2Por10, pagarDepois };
+            item.data = new Date().toLocaleDateString(); // Adicionando a data
+            let items = JSON.parse(localStorage.getItem('items')) || [];
+            items.push(item);
+            localStorage.setItem('items', JSON.stringify(items));
+
+            alert('Item cadastrado com sucesso!');
+            novoCadastro();
+        }
+
+        function novoCadastro() {
+            document.getElementById('cadastroForm').reset();
+            document.getElementById('total').value = '';
+        }
+
+        function carregarItens() {
+            const tbody = document.getElementById('consultaTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            const items = JSON.parse(localStorage.getItem('items')) || [];
+
+            items.forEach(item => {
+                const row = document.createElement ('tr');
+                row.innerHTML = `
+                    <td>${item.nome}</td>
+                    <td>${item.cantina}</td>
+                    <td>${item.valor}</td>
+                    <td>${item.quantidade}</td>
+                    <td>${item.total2Por10}</td>
+                    <td>${item.total}</td>
+                    <td>${item.data}</td>
+                    <td>${item.pagarDepois ? 'Em haver' : ''}</td>
+                    <td>
+                        <button onclick="compartilharWhatsApp(${item.total})">Compartilhar</button>
+                        <button onclick="removerItem(${items.indexOf(item)})">Apagar</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function compartilharWhatsApp(total) {
+            const mensagem = `Total da venda: ${total}`;
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+            window.open(url, '_blank');
+        }
+
+        function removerItem(index) {
+            let items = JSON.parse(localStorage.getItem('items'))
+            items.splice(index, 1);
+            localStorage.setItem('items', JSON.stringify(items));
+            carregarItens();
+        }
+
+        function voltarParaInicio() {
+            document.getElementById('formulario').style.display = 'none';
+            document.getElementById('consulta').style.display = 'none';
+        }
+
+        function filtrarItens() {
+            const nomeFiltro = document.getElementById('nomeFiltro').value.toLowerCase();
+            const dataFiltro = document.getElementById('dataFiltro').value;
+
+            const items = JSON.parse(localStorage.getItem('items')) || [];
+
+            const tbody = document.getElementById('consultaTable').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            items.forEach(item => {
+                if (item.nome.toLowerCase().includes(nomeFiltro) && (!dataFiltro || item.data === dataFiltro)) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.nome}</td>
+                        <td>${item.cantina}</td>
+                        <td>${item.valor}</td>
+                        <td>${item.quantidade}</td>
+                        <td>${item.total2Por10}</td>
+                        <td>${item.total}</td>
+                        <td>${item.data}</td>
+                        <td>${item.pagarDepois ? 'Em haver' : ''}</td>
+                        <td>
+                            <button onclick="compartilharWhatsApp(${item.total})">Compartilhar</button>
+                            <button onclick="removerItem(${items.indexOf(item)})">Apagar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
